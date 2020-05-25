@@ -28,9 +28,9 @@ GIT
 
 GIT
   remote: https://github.com/librariesio/spdx
-  revision: a1deea4e22bd4397952ead22d26fca226ff04621
+  revision: 462b8931633ee30997544f3f8e9011c369801be1
   specs:
-    spdx (2.0.8)
+    spdx (2.0.9)
       fuzzy_match (~> 2.1)
       treetop (~> 1.6)
 
@@ -186,7 +186,7 @@ GEM
     pg_search (2.3.2)
       activerecord (>= 5.2)
       activesupport (>= 5.2)
-    pghero (2.5.0)
+    pghero (2.4.2)
       activerecord (>= 5)
     polyglot (0.3.5)
     popper_js (1.16.0)
