@@ -122,8 +122,8 @@ GEM
       activerecord (>= 4.2)
       activesupport (>= 4.2)
     crass (1.0.6)
-    deb_control (0.0.1)
     dalli (2.7.11)
+    deb_control (0.0.1)
     dotenv (2.7.6)
     dotenv-rails (2.7.6)
       dotenv (= 2.7.6)
@@ -378,7 +378,7 @@ DEPENDENCIES
   zlib
 
 RUBY VERSION
-   ruby 3.0.0p137
+   ruby 2.7.2p137
 
 BUNDLED WITH
-   2.2.3
+   2.1.4
