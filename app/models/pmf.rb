@@ -37,7 +37,7 @@ class Pmf
 
       previous_window_events = i.zero? ? [] : previous_window[1]
 
-      states = states_for_window(window, previous_window, previous_usernames)
+      states = states_for_window(window_events, previous_window_events, previous_usernames)
 
       previous_usernames += states.map{|a| a[0]}
       previous_usernames.uniq!
@@ -74,7 +74,7 @@ class Pmf
 
       previous_window_events = i.zero? ? [] : previous_window[1]
 
-      states = states_for_window(window, previous_window, previous_usernames)
+      states = states_for_window(window_events, previous_window_events, previous_usernames)
 
       previous_usernames += states.map{|a| a[0]}
       previous_usernames.uniq!
@@ -190,7 +190,7 @@ class Pmf
 
       previous_window_events = i.zero? ? [] : previous_window[1]
 
-      states = states_for_window(window, previous_window, previous_usernames)
+      states = states_for_window(window_events, previous_window_events, previous_usernames)
 
       previous_usernames += states.map{|a| a[0]}
       previous_usernames.uniq!
@@ -210,37 +210,29 @@ class Pmf
     return periods
   end
 
-  def self.states_for_window(window, previous_window, previous_usernames)
-    date = window[0]
+  def self.states_for_window(window_events, previous_window_events, previous_usernames)
+    # TODO use previous_window_events for transitions
 
-    states_with_firsts = Rails.cache.fetch(['pmf_states_for_window', date], expires_in: 1.week) do
-      window_events = window[1]
+    active_actors = window_events.group_by(&:actor)
 
-      # TODO load only events required from db here
+    scores = active_actors.map{|username, events| [username, score_for_user(username, events)] }
 
-      previous_window_events = previous_window.nil? ? [] : previous_window[1]
+    states = scores.map{|username, score| [username, score, state_for_user(username, score)] }
 
-      active_actors = window_events.group_by(&:actor)
+    these_users = states.map{|a| a[0]}
 
-      scores = active_actors.map{|username, events| [username, score_for_user(username, events)] }
+    # user from previous_usernames not present here (inactive)
+    inactive = previous_usernames - these_users
+    states += inactive.map{|username| [username, 0, 'inactive'] }
 
-      states = scores.map{|username, score| [username, score, state_for_user(username, score)] }
+    # user not in previous_usernames present here (first)
+    first = these_users - previous_usernames
 
-      these_users = states.map{|a| a[0]}
-
-      # user from previous_usernames not present here (inactive)
-      inactive = previous_usernames - these_users
-      states += inactive.map{|username| [username, 0, 'inactive'] }
-
-      # user not in previous_usernames present here (first)
-      first = these_users - previous_usernames
-
-      states_with_firsts = states.map do |user|
-        if first.include?(user[0])
-          [user[0], user[1], 'first']
-        else
-          user
-        end
+    states_with_firsts = states.map do |user|
+      if first.include?(user[0])
+        [user[0], user[1], 'first']
+      else
+        user
       end
     end
 
@@ -275,6 +267,15 @@ class Pmf
   end
 
   def self.event_scope
-    Event.not_core.where.not(event_type: 'WatchEvent')
+    # not star events
+    # not PL employees/contractors
+    # only repos with pl dependencies or search results or pl owned repos
+
+    repository_ids = Repository.with_internal_deps.pluck(:id)
+    repository_ids += Repository.with_search_results.pluck(:id)
+    repository_ids += Repository.internal.pluck(:id)
+    repository_ids.uniq!
+
+    Event.not_core.where.not(event_type: 'WatchEvent').where(repository_id: repository_ids)
   end
 end

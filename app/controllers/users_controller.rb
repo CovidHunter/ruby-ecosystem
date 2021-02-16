@@ -21,6 +21,7 @@ class UsersController < ApplicationController
     end
 
     if @data
+      p @data.first[:date]
       all_users = @data.first[:states].first[1]
     else
       all_users = []
