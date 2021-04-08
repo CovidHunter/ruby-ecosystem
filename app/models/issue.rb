@@ -25,6 +25,7 @@ class Issue < ApplicationRecord
   scope :language, ->(language) { where('repo_full_name ilike ?', "%/#{language}-%") }
 
   scope :no_milestone, -> { where(milestone_name: nil) }
+  scope :no_boards, -> { where("board_ids = '{}'") }
   scope :unlabelled, -> { where("labels = '{}'") }
   scope :label, ->(label) { where("labels @> ARRAY[?]::varchar[]", label) }
 
@@ -160,8 +161,12 @@ class Issue < ApplicationRecord
 
   def update_board_ids
     return if board_ids.any?
-    events = Issue.github_client.issue_timeline(repo_full_name, number, accept: 'application/vnd.github.mockingbird-preview,application/vnd.github.starfox-preview+json')
-    update_column(:board_ids, events.map{|e| e.project_card}.compact.map{|c| c.project_id}.uniq)
+    begin
+      events = Issue.github_client.issue_timeline(repo_full_name, number, accept: 'application/vnd.github.mockingbird-preview,application/vnd.github.starfox-preview+json')
+      update_column(:board_ids, events.map{|e| e.project_card}.compact.map{|c| c.project_id}.uniq)
+    rescue Octokit::NotFound
+      destroy
+    end
   end
 
   def calculate_first_response
